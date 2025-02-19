@@ -4,9 +4,10 @@ import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { Upload, Loader2 } from "lucide-react"
 import { LanguageSelector, type Language } from "./language-selector"
+import { AnalysisResult } from "../types"
 
 interface UploadSectionProps {
-  onResult: (result: any) => void
+  onResult: (result: AnalysisResult) => void
 }
 
 export default function UploadSection({ onResult }: UploadSectionProps) {

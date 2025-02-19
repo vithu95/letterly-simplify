@@ -5,8 +5,10 @@ import type React from "react"
 import { useState } from "react"
 import { Upload, ImageIcon, Camera } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Image from 'next/image'
+import type { AnalysisResult } from "@/app/types"
 
-export default function ImageUpload({ onResult }: { onResult: (result: any) => void }) {
+export default function ImageUpload({ onResult }: { onResult: (result: AnalysisResult) => void }) {
   const [image, setImage] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -50,9 +52,11 @@ export default function ImageUpload({ onResult }: { onResult: (result: any) => v
         <label htmlFor="file-upload" className="cursor-pointer">
           <div className="w-64 h-64 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
             {image ? (
-              <img
-                src={URL.createObjectURL(image) || "/placeholder.svg"}
-                alt="Uploaded"
+              <Image
+                src={URL.createObjectURL(image)}
+                alt="Preview"
+                width={200}
+                height={200}
                 className="max-w-full max-h-full"
               />
             ) : (

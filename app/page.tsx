@@ -8,10 +8,11 @@ import Summary from "./components/summary"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Language } from "./components/summary"
+import type { AnalysisResult } from "./types"
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
-  const [result, setResult] = useState(null)
+  const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { theme, setTheme } = useTheme()
 
@@ -19,7 +20,7 @@ export default function Home() {
     setMounted(true)
   }, [])
 
-  const handleResult = (data: any) => {
+  const handleResult = (data: AnalysisResult) => {
     if (data.error) {
       setError(data.error)
       setResult(null)
@@ -71,6 +72,12 @@ export default function Home() {
           )}
         </Button>
       </div>
+
+      {error && (
+        <div className="absolute top-4 left-4 bg-destructive/10 text-destructive px-4 py-2 rounded-md">
+          {error}
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {!result ? (

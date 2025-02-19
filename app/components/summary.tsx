@@ -1,15 +1,13 @@
 "use client"
 
-import { Info, CheckCircle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import ActionItem from "./action-item"
+import type { AnalysisResult } from "@/app/types"
+import type { Language } from "./language-selector"
 
 interface SummaryProps {
-  result: {
-    summary: string
-    actions: string[]
-    ocrText: string
-  } | null
+  result: AnalysisResult | null
+  onLanguageChange: (language: Language, ocrText: string) => Promise<void>
 }
 
 export default function Summary({ result }: SummaryProps) {

@@ -1,9 +1,11 @@
 "use client"
 
 import { Info, CheckCircle } from "lucide-react"
+import type { AnalysisResult } from "@/app/types"
+import ActionItem from "./action-item"
 
 interface AnalysisResultsProps {
-  result: any | null
+  result: AnalysisResult | null
 }
 
 export default function AnalysisResults({ result }: AnalysisResultsProps) {
@@ -25,24 +27,18 @@ export default function AnalysisResults({ result }: AnalysisResultsProps) {
         <div className="space-y-6">
           <div className="border border-white/10 bg-white/5 rounded-xl p-6">
             <h3 className="text-white font-medium mb-3">Summary:</h3>
-            <p className="text-gray-400 leading-relaxed">
-              {result.summary}
-            </p>
+            <p className="text-gray-400 leading-relaxed">{result.summary}</p>
           </div>
           
           <div className="border border-white/10 bg-white/5 rounded-xl p-6">
             <h3 className="text-white font-medium mb-4">Actions to Take:</h3>
             <div className="space-y-3">
-              {result.actions.map((action: string, index: number) => (
-                <div 
-                  key={index} 
-                  className="flex items-start gap-4 p-3 rounded-lg bg-white/5 border border-white/10"
-                >
-                  <span className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-sm text-white flex-shrink-0">
-                    {index + 1}
-                  </span>
-                  <span className="text-gray-400">{action}</span>
-                </div>
+              {result.actions.map((action, index) => (
+                <ActionItem 
+                  key={index}
+                  action={action}
+                  index={index}
+                />
               ))}
             </div>
           </div>
