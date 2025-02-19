@@ -13,8 +13,8 @@ export async function POST(req: Request) {
     }
 
     const worker = await createWorker("deu")
-    const arrayBuffer = await file.arrayBuffer()
-    const { data: { text: ocrText } } = await worker.recognize(arrayBuffer)
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const { data: { text: ocrText } } = await worker.recognize(buffer)
     await worker.terminate()
     
     const openai = new OpenAI({
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     })
 
     const result = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -64,12 +64,12 @@ export async function POST(req: Request) {
       tool_choice: { type: "function", function: { name: "translation_summary" } }
     });
 
-    const functionCall = result.choices[0].message.tool_calls[0].function
-    if (!functionCall || !functionCall.arguments) {
+    const toolCalls = result.choices[0].message.tool_calls
+    if (!toolCalls?.[0]?.function || !toolCalls[0].function.arguments) {
       throw new Error("Invalid response from OpenAI")
     }
 
-    const parsedResult = JSON.parse(functionCall.arguments)
+    const parsedResult = JSON.parse(toolCalls[0].function.arguments)
     return NextResponse.json({
       success: true,
       summary: parsedResult.summary,

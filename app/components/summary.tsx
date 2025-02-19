@@ -2,18 +2,18 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import ActionItem from "./action-item"
-import type { AnalysisResult } from "@/app/types"
+import type { ApiResponse } from "@/app/types"
 import type { Language } from "./language-selector"
 
 interface SummaryProps {
-  result: AnalysisResult | null
+  result: ApiResponse | null
   onLanguageChange: (language: Language, ocrText: string) => Promise<void>
 }
 
 export default function Summary({ result }: SummaryProps) {
   return (
     <AnimatePresence mode="wait">
-      {result && (
+      {result?.success && result.summary && result.actions && (
         <motion.div 
           className="w-full space-y-8"
           initial={{ opacity: 0 }}

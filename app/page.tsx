@@ -7,12 +7,12 @@ import UploadSection from "./components/upload-section"
 import Summary from "./components/summary"
 import { useTheme } from "next-themes"
 import { motion, AnimatePresence } from "framer-motion"
-import type { Language } from "./components/summary"
-import type { AnalysisResult } from "./types"
+import type { Language } from "./components/language-selector"
+import type { ApiResponse } from "./types"
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
-  const [result, setResult] = useState<AnalysisResult | null>(null)
+  const [result, setResult] = useState<ApiResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { theme, setTheme } = useTheme()
 
@@ -20,12 +20,17 @@ export default function Home() {
     setMounted(true)
   }, [])
 
-  const handleResult = (data: AnalysisResult) => {
-    if (data.error) {
-      setError(data.error)
+  const handleResult = (data: ApiResponse) => {
+    if (data.error || !data.success) {
+      setError(data.error || 'An error occurred')
       setResult(null)
     } else {
-      setResult(data)
+      setResult({
+        success: true,
+        summary: data.summary!,
+        actions: data.actions!,
+        ocrText: data.ocrText!
+      })
       setError(null)
     }
   }
