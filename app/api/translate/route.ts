@@ -6,7 +6,7 @@ import sharp from 'sharp'
 
 // Use the correct types from heic-convert
 interface ConversionOptions {
-  buffer: ArrayBufferLike
+  buffer: Buffer | Uint8Array
   format: 'JPEG' | 'PNG'
   quality?: number
 }
@@ -25,54 +25,45 @@ export async function POST(req: Request) {
       }
 
       // Check file type
-      const supportedTypes = [
-        'image/jpeg', 
-        'image/png', 
-        'application/pdf',
-        'image/heic',
-        'image/heif'
-      ]
+      const supportedTypes = ['image/jpeg', 'image/png', 'application/pdf', 'image/heic', 'image/heif']
       if (!supportedTypes.includes(file.type)) {
         return NextResponse.json({ 
           error: "Unsupported file type. Please upload a PDF, PNG, JPEG, or HEIC file." 
         }, { status: 400 })
       }
 
-      let arrayBuffer = await file.arrayBuffer()
+      let buffer: Buffer
+      const arrayBuffer = await file.arrayBuffer()
       
       // Convert HEIC to JPEG if needed
       if (file.type === 'image/heic' || file.type === 'image/heif') {
         try {
-          // Convert ArrayBuffer to Buffer for heic-convert
           const inputBuffer = Buffer.from(arrayBuffer)
           
           const options: ConversionOptions = {
-            buffer: inputBuffer,  // Use Buffer instead of ArrayBuffer
+            buffer: inputBuffer,
             format: 'JPEG',
             quality: 1
           }
           
           const convert = heicConvert as unknown as (options: ConversionOptions) => Promise<Buffer>
-          const convertedBuffer = await convert(options)
-          
-          // Update arrayBuffer with the converted buffer
-          arrayBuffer = convertedBuffer.buffer
+          buffer = await convert(options)
         } catch (conversionError) {
           console.error('HEIC conversion error:', conversionError)
           return NextResponse.json({ 
             error: "Failed to process HEIC image. Please try converting it to JPEG first." 
           }, { status: 400 })
         }
+      } else {
+        // For non-HEIC files, use the original buffer
+        buffer = Buffer.from(arrayBuffer)
       }
 
-      // Convert ArrayBuffer to Buffer and process image
-      const buffer = Buffer.from(new Uint8Array(arrayBuffer))
+      // Process image
       const processedBuffer = await processImage(buffer)
       
-      // Initialize worker with correct options
+      // Initialize worker and perform OCR
       const worker = await createWorker('deu')
-      
-      // Perform OCR
       const { data: { text: ocrText } } = await worker.recognize(processedBuffer)
       await worker.terminate()
       
@@ -167,7 +158,7 @@ const processImage = async (buffer: Buffer) => {
     .grayscale()
     .normalize()
     .sharpen()
-    .jpeg({ quality: 90 })
+    .jpeg({ quality: 60 })
     .toBuffer();
   return processed;
 };
