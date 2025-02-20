@@ -4,10 +4,10 @@ import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { Upload, Loader2 } from "lucide-react"
 import { LanguageSelector, type Language } from "./language-selector"
-import type { ApiResponse } from "../types"
+import type { AnalysisResult } from "@/app/types"
 
 interface UploadSectionProps {
-  onResult: (result: ApiResponse) => void
+  onResult: (result: AnalysisResult) => void
 }
 
 export default function UploadSection({ onResult }: UploadSectionProps) {
@@ -15,41 +15,55 @@ export default function UploadSection({ onResult }: UploadSectionProps) {
   const [error, setError] = useState<string | null>(null)
   const [language, setLanguage] = useState<Language>('english')
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0]
-    if (!file) return
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      if (acceptedFiles.length === 0) return
 
-    setIsLoading(true)
-    setError(null)
-
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("language", language)
-
-    try {
-      const response = await fetch("/api/translate", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to process document")
+      setIsLoading(true)
+      setError(null)
+      const file = acceptedFiles[0]
+      // Check if file type is supported
+      const supportedTypes = ['image/jpeg', 'image/png','image/heic','image/heif', 'application/pdf']
+      if (!supportedTypes.includes(file.type)) {
+        setError('Unsupported file type. Please upload a PDF, PNG, or JPEG file.')
+        setIsLoading(false)
+        return
       }
 
-      const result = await response.json()
-      onResult(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [onResult, language])
+      const formData = new FormData()
+      formData.append("file", file)
+
+      try {
+        const response = await fetch("/api/translate", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Failed to process image")
+        }
+
+        const result = await response.json()
+        onResult(result)
+      } catch (error) {
+        console.error("Error uploading file:", error)
+        setError(error instanceof Error ? error.message : "Failed to process the file")
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [onResult]
+  )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png'],
-      'application/pdf': ['.pdf']
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'application/pdf': ['.pdf'],
+      'image/heic': ['.heic'],
+      'image/heif': ['.heif']
     },
     maxFiles: 1,
     disabled: isLoading
@@ -80,7 +94,7 @@ export default function UploadSection({ onResult }: UploadSectionProps) {
             ? "Processing your document..."
             : "Drop your letter here or click to upload"}
         </p>
-        <p className="text-gray-500 text-sm">Support for PDF, PNG, and JPEG files</p>
+        <p className="text-gray-500 text-sm">Support for PDF, PNG, JPEG, and HEIC files</p>
         {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
       </div>
     </div>
