@@ -25,13 +25,14 @@ export default function UploadSection({ onResult }: UploadSectionProps) {
       // Check if file type is supported
       const supportedTypes = ['image/jpeg', 'image/png','image/heic','image/heif', 'application/pdf']
       if (!supportedTypes.includes(file.type)) {
-        setError('Unsupported file type. Please upload a PDF, PNG, or JPEG file.')
+        setError('Unsupported file type. Please upload a PDF, PNG, JPEG, or HEIC file.')
         setIsLoading(false)
         return
       }
 
       const formData = new FormData()
       formData.append("file", file)
+      formData.append("language", language)
 
       try {
         const response = await fetch("/api/translate", {

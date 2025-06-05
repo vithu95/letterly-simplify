@@ -19,6 +19,8 @@ export async function POST(req: Request) {
     if (req.headers.get("content-type")?.includes("multipart/form-data")) {
       const formData = await req.formData()
       const file = formData.get("file") as File
+      const formLanguage = formData.get("language")
+      language = typeof formLanguage === 'string' ? formLanguage : "english"
       
       if (!file) {
         return NextResponse.json({ error: "No file uploaded" }, { status: 400 })
@@ -68,7 +70,6 @@ export async function POST(req: Request) {
       await worker.terminate()
       
       text = ocrText
-      language = "english" // Default to English for initial upload
     } else {
       const body = await req.json()
       text = body.text
