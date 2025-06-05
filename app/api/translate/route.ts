@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { createWorker } from "tesseract.js"
 import OpenAI from 'openai'
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import heicConvert from 'heic-convert'
 import sharp from 'sharp'
 
@@ -13,8 +13,9 @@ interface ConversionOptions {
 
 export async function POST(req: Request) {
   try {
-    let text: string
+    let text: string | undefined
     let language: string
+    let imageBase64: string | undefined
 
     if (req.headers.get("content-type")?.includes("multipart/form-data")) {
       const formData = await req.formData()
@@ -59,15 +60,9 @@ export async function POST(req: Request) {
         buffer = Buffer.from(arrayBuffer)
       }
 
-      // Process image
+      // Process image and convert to base64 for OpenAI
       const processedBuffer = await processImage(buffer)
-      
-      // Initialize worker and perform OCR
-      const worker = await createWorker('deu')
-      const { data: { text: ocrText } } = await worker.recognize(processedBuffer)
-      await worker.terminate()
-      
-      text = ocrText
+      imageBase64 = processedBuffer.toString('base64')
       language = "english" // Default to English for initial upload
     } else {
       const body = await req.json()
@@ -80,26 +75,41 @@ export async function POST(req: Request) {
       apiKey: process.env.OPENAI_API_KEY
     })
 
+    const messages: ChatCompletionMessageParam[] = [
+      {
+        role: "system",
+        content:
+          `You are a translation assistant. Summarize the user's letter and list the important actions in simple ${language}. Also return the recognized text.`
+      }
+    ]
+
+    if (imageBase64) {
+      messages.push({
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: `data:image/jpeg;base64,${imageBase64}` }
+          }
+        ]
+      })
+    } else if (text) {
+      messages.push({
+        role: "user",
+        content: text
+      })
+    }
+
     const result = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            `You are a translation assistant. Translate the following letter, which the user received into a summary and list the important actions mentioned in it in simple ${language}.`
-        },
-        {
-          role: "user",
-          content: text
-        }
-      ],
+      model: "gpt-4o",
+      messages,
       tools: [
         {
           type: "function",
           function: {
             name: "translation_summary",
             description:
-              `Provides a ${language} summary in simple language of the input text along with a list of important actions.`,
+              `Provides a ${language} summary in simple language of the input text or image along with a list of important actions and the recognized text.`,
             parameters: {
               type: "object",
               properties: {
@@ -116,9 +126,13 @@ export async function POST(req: Request) {
                     description:
                       "An important action that needs to be taken by the user."
                   }
+                },
+                ocrText: {
+                  type: "string",
+                  description: "The full text extracted from the letter"
                 }
               },
-              required: ["summary", "actions"],
+              required: ["summary", "actions", "ocrText"],
               additionalProperties: false
             }
           }
@@ -133,11 +147,12 @@ export async function POST(req: Request) {
     }
 
     const parsedResult = JSON.parse(functionCall.arguments)
+
     return NextResponse.json({
       success: true,
       summary: parsedResult.summary,
       actions: parsedResult.actions,
-      ocrText: text,
+      ocrText: text ?? parsedResult.ocrText,
     })
 
   } catch (error) {
