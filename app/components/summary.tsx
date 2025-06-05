@@ -2,25 +2,33 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import ActionItem from "./action-item"
+import { LanguageSelector, type Language } from "./language-selector"
 import type { ApiResponse } from "@/app/types"
-import type { Language } from "./language-selector"
+import { useState } from "react"
 
 interface SummaryProps {
   result: ApiResponse | null
   onLanguageChange: (language: Language, ocrText: string) => Promise<void>
 }
 
-export default function Summary({ result }: SummaryProps) {
+export default function Summary({ result, onLanguageChange }: SummaryProps) {
+  const [language, setLanguage] = useState<Language>('english')
+
+  const handleSelect = async (lang: Language) => {
+    if (!result) return
+    setLanguage(lang)
+    await onLanguageChange(lang, result.ocrText!)
+  }
   return (
     <AnimatePresence mode="wait">
       {result?.success && result.summary && result.actions && (
-        <motion.div 
+        <motion.div
           className="w-full space-y-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <motion.div 
+          <motion.div
             className="text-center mb-8"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -28,6 +36,7 @@ export default function Summary({ result }: SummaryProps) {
           >
             <h1 className="text-4xl font-bold text-foreground mb-4">Letter Analysis</h1>
           </motion.div>
+          <LanguageSelector selectedLanguage={language} onLanguageSelect={handleSelect} />
           
           <div className="space-y-6">
             <div className="border border-white/10 bg-white/5 rounded-xl p-6">
